@@ -155,7 +155,7 @@ function buildProbs(){
 }
 
 // ===== STATE =====
-let S={role:'HR',emp:emps[0],nav:'overview',dark:false,weights:{...W},filter:'All',settings:false};
+let S={role:'HR',emp:emps[0],nav:'overview',dark:false,weights:{...W},filter:'All',settings:false,metricView:'overall',thresholds:{promo:4.2,bonus:3.8,improve:2.8}};
 function mL(k){const m={goalAchievement:'Goal Achievement',productivity:'Productivity',qualityOfWork:'Quality of Work',reliability:'Reliability',problemSolving:'Problem Solving',integrity:'Integrity',peerFeedback:'Peer Feedback',communication:'Communication',trendSlope:'Trend Slope',tenure:'Tenure'};return m[k]||k}
 
 // ===== RENDER =====
@@ -172,9 +172,9 @@ function r(){
   let h='<div class="'+(dk?'dark':'')+'" style="min-height:100vh">';
   h+='<header class="header"><div class="header-left"><div class="logo-mark">e</div><div class="logo-text">empeo <span>Insights</span></div></div>';
   h+='<div class="header-center">';
-  for(const r of['HR','Manager','Employee'])h+='<button class="role-btn'+(r===S.role?' active':'')+'" onclick="setRole(''+r+'')">'+r+'</button>';
+  for(const r of['HR','Manager','Employee'])h+='<button class="role-btn'+(r===S.role?' active':'')+'" onclick="setRole(\''+r+'\')">'+r+'</button>';
   h+='</div><div class="header-right"><button class="theme-toggle" onclick="togT()">'+(dk?'☀️':'🌙')+'</button></div></header>';
-  if(!em){h+='<nav class="sidebar">';for(const n of navs)h+='<a class="nav-item'+(n.id===S.nav?' active':'')+'" onclick="selNav(''+n.id+'')"><span class="icon">'+(ico[n.id]||'📊')+'</span> '+n.lb+'</a>';h+='</nav>';}
+  if(!em){h+='<nav class="sidebar">';for(const n of navs)h+='<a class="nav-item'+(n.id===S.nav?' active':'')+'" onclick="selNav(\''+n.id+'\')"><span class="icon">'+(ico[n.id]||'📊')+'</span> '+n.lb+'</a>';h+='</nav>';}
   h+='<div class="main'+(em?' role-employee':'')+'">';
   if(!em){h+='<div class="employee-selector" style="margin-bottom:16px"><label style="font-size:13px;color:var(--text-muted);font-weight:500">Employee</label>';
   h+='<select onchange="setEmp(this.value)">';for(const emp of emps)h+='<option value="'+emp.name+'"'+(emp.name===e.name?' selected':'')+'>'+emp.name+' — '+emp.role+'</option>';h+='</select>';
@@ -184,7 +184,7 @@ function r(){
     h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:500">Metric Weights</div>';
     for(const[k,v]of Object.entries(S.weights)){
       const lab=k.replace(/([A-Z])/g,' $1').replace(/^./,s=>s.toUpperCase());
-      h+='<div class="settings-row"><label>'+lab+'</label><input type="range" min="0.5" max="2" step="0.1" value="'+v+'" onchange="setW(''+k+'',+this.value)"><span class="val">'+v+'</span></div>';
+      h+='<div class="settings-row"><label>'+lab+'</label><input type="range" min="0.5" max="2" step="0.1" value="'+v+'" onchange="setW(\''+k+'\',+this.value)"><span class="val">'+v+'</span></div>';
     }
     h+='</div><div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:500">Badge Thresholds</div>';
     h+='<div class="settings-row"><label>Promotion ≥</label><input type="number" step="0.1" value="4.2" style="width:60px" onchange="setThr(0,+this.value)"></div>';
@@ -196,8 +196,8 @@ function r(){
   // Calibration
   if(hr&&S.nav==='calibration'){
     h+='<h2 style="font-size:20px;font-weight:600;margin-bottom:8px">Calibration Overview</h2><p style="color:var(--text-muted);margin-bottom:16px">Department rating distribution</p>';
-    h+='<div class="dept-selector"><button class="dept-chip'+(S.filter==='All'?' active':'')+'" onclick="setF('All')">All</button>';
-    for(const d of DEPTS)h+='<button class="dept-chip'+(S.filter===d?' active':'')+'" onclick="setF(''+d+'')">'+d+'</button>';h+='</div>';
+    h+='<div class="dept-selector"><button class="dept-chip'+(S.filter==='All'?' active':'')+'" onclick="setF(\'All\')">All</button>';
+    for(const d of DEPTS)h+='<button class="dept-chip'+(S.filter===d?' active':'')+'" onclick="setF(\''+d+'\')">'+d+'</button>';h+='</div>';
     const fl=S.filter==='All'?emps:emps.filter(em=>em.dept===S.filter);
     const dist=[1,2,3,4,5].map(b=>fl.filter(em=>Math.floor(em.os)===b).length);
     const mx=Math.max(...dist,1);
@@ -207,10 +207,10 @@ function r(){
     h+='<table class="calibration-table"><thead><tr><th>Name</th><th>Dept</th><th>Score</th><th>Badges</th><th>Salary</th><th>Bonus</th><th>Promo</th><th></th></tr></thead><tbody>';
     fl.sort((a,b)=>b.os-a.os).forEach(em=>{
       const p=probs[em.name]||{salary:0,bonus:0,promotion:0};
-      h+='<tr><td class="clickable" onclick="setEmp(''+em.name+'');selNav('overview')">'+em.name+'</td><td>'+em.dept+'</td><td>'+em.os+'</td><td>';
+      h+='<tr><td class="clickable" onclick="setEmp(\''+em.name+'\');selNav(\'overview\')">'+em.name+'</td><td>'+em.dept+'</td><td>'+em.os+'</td><td>';
       for(const b of em.badges)h+='<span class="badge badge-'+b.color+'" style="margin-right:4px;margin-bottom:4px">'+b.label+'</span>';
       h+='</td><td>'+p.salary.toFixed(1)+'%</td><td>'+p.bonus.toFixed(1)+'%</td><td>'+p.promotion.toFixed(1)+'%</td>';
-      h+='<td><button class="role-btn" onclick="setEmp(''+em.name+'');selNav('overview')">View</button></td></tr>';
+      h+='<td><button class="role-btn" onclick="setEmp(\''+em.name+'\');selNav(\'overview\')">View</button></td></tr>';
     });
     h+='</tbody></table></div></div>';
   }
@@ -220,7 +220,7 @@ function r(){
     h+='<h2 style="font-size:20px;font-weight:600;margin-bottom:16px">Direct Reports ('+rps.length+')</h2><div class="direct-reports">';
     for(const em of rps){
       const p=probs[em.name]||{promotion:0};
-      h+='<div class="report-card" onclick="setEmp(''+em.name+'');selNav('overview')"><h4>'+em.name+'</h4>';
+      h+='<div class="report-card" onclick="setEmp(\''+em.name+'\');selNav(\'overview\')"><h4>'+em.name+'</h4>';
       h+='<div class="muted">'+em.role+' · '+em.dept+'</div><div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">';
       for(const b of em.badges)h+='<span class="badge badge-'+b.color+'" style="font-size:11px">'+b.label+'</span>';
       h+='</div><div style="margin-top:6px;display:flex;gap:12px;font-size:13px">Score: <strong>'+em.os+'</strong> Promo: '+p.promotion.toFixed(0)+'%</div></div>';
@@ -238,8 +238,8 @@ function r(){
     h+='</div></div></div></div>';
     h+='<div class="card"><div class="card-header"><div class="card-title">8 Metrics — Current Quarter</div></div><div class="chart-container"><canvas id="radarChart"></canvas></div></div>';
     h+='<div class="card"><div class="card-header"><div class="card-title">Historical Trend</div><select onchange="cMV(this.value)" style="font-size:12px">';
-    h+='<option value="overall">Overall Score</option>';
-    for(const k of Object.keys(W))h+='<option value="'+k+'">'+mL(k)+'</option>';h+='</select></div><div class="chart-container"><canvas id="trendChart"></canvas></div></div>';
+    h+='<option value="overall"'+(S.metricView==='overall'?' selected':'')+'>Overall Score</option>';
+    for(const k of Object.keys(W))h+='<option value="'+k+'"'+(S.metricView===k?' selected':'')+'>'+mL(k)+'</option>';h+='</select></div><div class="chart-container"><canvas id="trendChart"></canvas></div></div>';
     const sorted=Object.entries(e.current).sort((a,b)=>b[1]-a[1]),str=sorted.slice(0,3),imp=sorted.slice(-3).reverse();
     h+='<div class="card"><div class="card-header"><div class="card-title">Strengths & Improvement Areas</div></div>';
     h+='<div style="margin-bottom:8px"><span style="font-size:12px;color:var(--text-muted);font-weight:500">Strengths</span></div><div class="strength-list">';
@@ -297,8 +297,8 @@ function r(){
   setTimeout(()=>{
     const rC=document.getElementById('radarChart');if(rC){if(rc)rc.destroy();
       rc=new Chart(rC,{type:'radar',data:{labels:Object.keys(W).map(k=>mL(k)),datasets:[{label:'Current',data:Object.values(e.current),backgroundColor:'rgba(217,83,10,0.15)',borderColor:'#D9530A',borderWidth:2,pointBackgroundColor:'#D9530A',pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:dk?'#EDE6DF':'#241C15',font:{size:11}}}},scales:{r:{beginAtZero:true,max:5,grid:{color:'rgba(36,28,21,0.08)'},ticks:{color:dk?'#B0A395':'#6B5F54',backdropColor:'transparent',font:{size:10}}}}}})}
-    const tC=document.getElementById('trendChart');if(tC){if(tc)tc.destroy();const mv=tC.parentElement?.parentElement?.querySelector('select')?.value||'overall';
-    tc=new Chart(tC,{type:'line',data:{labels:['Q1','Q2','Q3','Q4','Q5','Q6'].slice(0,e.tr.length),datasets:[{label:mv==='overall'?'Overall Score':mL(mv),data:mv==='overall'?e.tr:e.quarters.map(q=>q[mv]),borderColor:'#D9530A',backgroundColor:'rgba(217,83,10,0.1)',fill:true,tension:0.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:dk?'#EDE6DF':'#241C15',font:{size:11}}}},scales:{y:{beginAtZero:true,max:5,grid:{color:'rgba(36,28,21,0.06)'},ticks:{color:dk?'#B0A395':'#6B5F54',font:{size:11}}},x:{ticks:{color:dk?'#B0A395':'#6B5F54',font:{size:11}}}}}})}
+    const tC=document.getElementById('trendChart');if(tC){if(tc)tc.destroy();
+    tc=new Chart(tC,{type:'line',data:{labels:['Q1','Q2','Q3','Q4','Q5','Q6'].slice(0,e.tr.length),datasets:[{label:S.metricView==='overall'?'Overall Score':mL(S.metricView),data:S.metricView==='overall'?e.tr:e.quarters.map(q=>q[S.metricView]),borderColor:'#D9530A',backgroundColor:'rgba(217,83,10,0.1)',fill:true,tension:0.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:dk?'#EDE6DF':'#241C15',font:{size:11}}}},scales:{y:{beginAtZero:true,max:5,grid:{color:'rgba(36,28,21,0.06)'},ticks:{color:dk?'#B0A395':'#6B5F54',font:{size:11}}},x:{ticks:{color:dk?'#B0A395':'#6B5F54',font:{size:11}}}}}})}
   },50);
 }
 
@@ -309,9 +309,9 @@ function togT(){S.dark=!S.dark;r()}
 function togS(){S.settings=!S.settings;r()}
 function setF(d){S.filter=d;r()}
 function setEmp(n){const e=emps.find(em=>em.name===n);if(e)S.emp=e;r()}
-function cMV(v){r()}
+function cMV(v){S.metricView=v;r()}
 function setW(k,v){S.weights[k]=v;emps.forEach(e=>{e.current=e.quarters[5];e.os=ws(e.current,S.weights);e.tr=e.quarters.map(q=>ws(q,S.weights));computeBadges(e)});buildProbs();r()}
-function setThr(i,v){const thrs=[4.2,3.8,2.8];thrs[i]=v;r()}
+function setThr(i,v){const ks=['promo','bonus','improve'];S.thresholds[ks[i]]=v;r()}
 
 // ===== INIT =====
 computeAll();
