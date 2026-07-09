@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>empeo Performance Insights</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<link href="https://fonts.cdnfonts.com/css/satoshi" rel="stylesheet">
+<style>
+:root{--bg-primary:#FFFFFF;--bg-secondary:#FAF7F5;--bg-offset:#F3EDE8;--accent:#D9530A;--accent-hover:#B8440A;--accent-active:#96380A;--text-primary:#241C15;--text-muted:#6B5F54;--text-faint:#A79C90;--border:rgba(36,28,21,0.10);--success:#3F7D33;--warning:#B8440A;--radius:8px;--radius-lg:12px;--font:'Satoshi',-apple-system,BlinkMacSystemFont,sans-serif}
+.dark{--bg-primary:#1A1512;--bg-secondary:#221B16;--bg-offset:#2B2119;--accent:#F0894B;--accent-hover:#E07A3A;--accent-active:#D06A2A;--text-primary:#EDE6DF;--text-muted:#B0A395;--text-faint:#7A6F63;--border:rgba(237,230,223,0.10);--success:#5EAF4A;--warning:#E07A3A}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Satoshi',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg-secondary);color:var(--text-primary);font-size:14px;line-height:1.5;min-height:100vh}
+body,input,select,button,textarea{font-family:'Satoshi',-apple-system,BlinkMacSystemFont,sans-serif}
+.logo-mark{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:var(--accent);border-radius:6px;color:#fff;font-weight:900;font-size:18px;flex-shrink:0}
+.logo-text{font-weight:700;font-size:18px;color:var(--text-primary);margin-left:8px}.logo-text span{color:var(--accent)}
+.header{position:fixed;top:0;left:0;right:0;height:60px;background:var(--bg-primary);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;z-index:100;gap:16px}
+.header-center{flex:1;display:flex;align-items:center;justify-content:center;gap:8px}
+.header-right{display:flex;align-items:center;gap:12px}
+.role-btn{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:13px;cursor:pointer;font-weight:500;font-family:inherit}
+.role-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.role-btn:hover:not(.active){background:var(--bg-offset)}
+.theme-toggle{background:none;border:1px solid var(--border);border-radius:6px;width:34px;height:34px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--text-muted)}
+.sidebar{position:fixed;top:60px;left:0;bottom:0;width:220px;background:var(--bg-primary);border-right:1px solid var(--border);padding:12px 0;z-index:50;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;color:var(--text-muted);cursor:pointer;font-size:13px;font-weight:500;border-left:3px solid transparent;text-decoration:none}
+.nav-item:hover{background:var(--bg-secondary);color:var(--text-primary)}
+.nav-item.active{background:var(--bg-offset);color:var(--accent);border-left-color:var(--accent);font-weight:600}
+.main{margin-left:220px;margin-top:60px;padding:24px 32px;min-height:calc(100vh-60px)}.main.role-employee{margin-left:0}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.kpi-card{background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:16px 20px}
+.kpi-card .label{font-size:12px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.kpi-card .value{font-size:28px;font-weight:700;color:var(--text-primary);margin-top:2px}
+.kpi-card .sub{font-size:12px;color:var(--text-faint);margin-top:2px}
+.score-big{font-size:48px;font-weight:800;color:var(--accent);line-height:1}
+.card{background:var(--bg-primary);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.card-title{font-size:16px;font-weight:600;color:var(--text-primary)}
+.chart-container{position:relative;width:100%;height:280px}
+select{background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text-primary);font-size:13px;cursor:pointer;font-family:inherit}
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer}
+.badge-success{background:#3F7D33;color:#fff}.badge-warning{background:#B8440A;color:#fff}.badge-neutral{background:#F3EDE8;color:#6B5F54}
+.tooltip-trigger{position:relative;cursor:pointer}
+.tooltip-box{display:none;position:absolute;top:calc(100%+4px);left:0;background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:10px 14px;z-index:200;min-width:220px;font-size:12px;color:var(--text-muted);line-height:1.5}
+.tooltip-trigger:hover .tooltip-box{display:block}
+.strength-list{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px}
+.strength-item{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:var(--bg-offset);font-size:13px}
+.strength-item.good{border-left:3px solid #3F7D33}.strength-item.needs{border-left:3px solid #B8440A}
+.calibration-table{width:100%;border-collapse:collapse;font-size:13px}
+.calibration-table th{text-align:left;padding:10px 12px;border-bottom:2px solid var(--border);color:var(--text-muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.calibration-table td{padding:10px 12px;border-bottom:1px solid var(--border)}
+.calibration-table tr:hover td{background:var(--bg-secondary)}
+.calibration-table .clickable{cursor:pointer;color:var(--accent);font-weight:500}
+.prediction-bar{display:flex;align-items:center;gap:10px}
+.prediction-fill{height:8px;border-radius:4px;background:var(--bg-offset);flex:1;overflow:hidden}
+.prediction-fill>div{height:100%;border-radius:4px;transition:width .6s}
+.prediction-pct{font-weight:700;font-size:14px;min-width:40px;text-align:right}
+.feature-list{list-style:none;padding:0;margin:8px 0 0}
+.feature-list li{padding:4px 0;font-size:12px;color:var(--text-muted);border-bottom:1px solid var(--border)}
+.why-panel{margin-top:8px;padding:10px 14px;background:var(--bg-offset);border-radius:8px;font-size:12px;color:var(--text-muted);border-left:3px solid var(--accent)}
+.insight-card{background:var(--bg-primary);border:1px solid var(--border);border-radius:12px;padding:16px 20px}
+.insight-card h4{font-size:14px;color:var(--text-muted);margin-bottom:8px}
+.employee-selector{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.employee-selector select{min-width:200px}
+.settings-panel{background:var(--bg-offset);border-radius:12px;padding:20px;margin-bottom:20px}
+.settings-row{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+.settings-row label{min-width:140px;font-size:12px;color:var(--text-muted)}
+.settings-row input[type=range]{flex:1;max-width:200px;accent-color:var(--accent)}
+.settings-row .val{font-weight:600;font-size:13px;min-width:30px}
+.dept-selector{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.dept-chip{padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:12px;color:var(--text-muted);font-family:inherit}
+.dept-chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.rating-dist{display:flex;align-items:flex-end;gap:4px;height:60px;margin-top:8px}
+.rating-dist .bar{flex:1;border-radius:4px 4px 0 0;background:var(--accent);min-height:4px;position:relative}
+.rating-dist .bar span{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--text-faint)}
+.next-steps{list-style:disc;padding-left:18px;margin-top:8px}
+.next-steps li{padding:4px 0;font-size:13px;color:var(--text-muted)}
+.direct-reports{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.report-card{background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:14px 16px;cursor:pointer}
+.report-card:hover{border-color:var(--accent)}
+.report-card h4{font-size:14px;margin-bottom:4px}
+.report-card .muted{font-size:12px;color:var(--text-muted)}
+.disclaimer{font-size:11px;color:var(--text-faint);padding:8px 12px;background:var(--bg-offset);border-radius:8px;margin-top:12px}
+@media(max-width:768px){.sidebar{display:none}.main{margin-left:0;padding:16px}.header-center{display:none}.kpi-grid{grid-template-columns:1fr 1fr}}
+</style></head><body>
+<div id="app"></div>
+<script>
+// ===== EMPLOYEE DATA GENERATION =====
+const DEPTS = ['Engineering','Product','Design','Marketing','Sales','Finance','People'];
+const ROLES = ['Engineer','Designer','PM','Analyst','Coordinator','Lead','Director'];
+const MGRS = ['Alex Rivera','Jordan Chen','Samira Patel','Marcus Obi','Priya Sharma','Taylor Reed','Morgan Whitney'];
+const FNS = ['Aisha','Ben','Clara','Diego','Elena','Felix','Grace','Hiro','Isla','Jamal','Kai','Lena','Ming','Nia','Omar','Priya','Quinn','Ravi','Sofia','Tao','Uma','Viktor','Wen','Ximena','Zara'];
+const LNS = ['Chen','Rivera','Kim','Patel','Johnson','Williams','Brown','Jones','Garcia','Miller','Davis','Wilson','Moore','Taylor','Anderson','Thomas','Jackson','White','Harris','Martin','Thompson','Lee','Walker','Hall','Allen'];
+function rd(a,b){return Math.round((Math.random()*(b-a)+a)*10)/10}
+function ri(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+let emps=[];
+for(let i=0;i<25;i++){
+  const nm=FNS[i%FNS.length]+' '+LNS[i%LNS.length],dp=DEPTS[i%DEPTS.length],rl=ROLES[i%ROLES.length],mg=MGRS[i%MGRS.length],tn=ri(1,12),qs=[];
+  for(let q=0;q<6;q++)qs.push({goalAchievement:rd(2.5,5),productivity:rd(2.5,5),qualityOfWork:rd(2.5,5),reliability:rd(2.5,5),problemSolving:rd(2.5,5),integrity:rd(2.5,5),peerFeedback:rd(2.5,5),communication:rd(2.5,5)});
+  emps.push({id:i,name:nm,dept:dp,role:rl,manager:mg,tenure:tn,quarters:qs,quarterQ:5});
+}
+
+const W = {goalAchievement:1.3,productivity:1,qualityOfWork:1.2,reliability:1,problemSolving:1,integrity:1,peerFeedback:1,communication:1};
+function ws(m,w){let t=0,tw=0;for(const[k,v]of Object.entries(m)){const wt=w[k]||1;t+=v*wt;tw+=wt}return +(t/tw).toFixed(2)}
+
+function computeBadges(e){
+  const s=e.os,c=e.current,bds=[];
+  let cons=0;for(let q=e.tr.length-1;q>=0;q--){if(e.tr[q]>=4.2)cons++;else break}
+  if(cons>=2&&c.problemSolving>=4&&c.integrity>=4)bds.push({label:'Promotion Watchlist',color:'success',why:'OS '+s+' >=4.2 for '+cons+'+ Qtrs, PS '+c.problemSolving+'>=4, Int '+c.integrity+'>=4'});
+  if(s>=3.8&&c.goalAchievement>=4)bds.push({label:'Bonus Eligible',color:'success',why:'OS '+s+'>=3.8, GA '+c.goalAchievement+'>=4'});
+  let ni=s<2.8;if(!ni)for(const[k,v]of Object.entries(c))if(v<=2){let cc=0;for(let q=e.quarters.length-1;q>=0;q--){if(e.quarters[q][k]<=2)cc++;else break}if(cc>=2){ni=true;break}}
+  if(ni)bds.push({label:'Needs Improvement Plan',color:'warning',why:'Score '+s+'<2.8 or metric <=2 for 2+ Qtrs'});
+  if(!bds.length)bds.push({label:'Stable Performer',color:'neutral',why:'No thresholds triggered'});
+  e.badges=bds;
+}
+
+function computeAll(){
+  emps.forEach(e=>{e.current=e.quarters[5];e.os=ws(e.current,W);e.tr=e.quarters.map(q=>ws(q,W));computeBadges(e);});
+}
+
+// ===== LOGISTIC REGRESSION =====
+class LR{
+  constructor(fn,lr,it){this.w=new Array(fn).fill(0);this.b=0;this.lr=lr||0.01;this.it=it||300}
+  s(z){return 1/(1+Math.exp(-Math.max(-30,Math.min(30,z))))}
+  p(f){let z=this.b;for(let i=0;i<f.length;i++)z+=this.w[i]*f[i];return this.s(z)}
+  train(X,y){
+    for(let it=0;it<this.it;it++){
+      let dw=new Array(this.w.length).fill(0),db=0;
+      for(let i=0;i<X.length;i++){let e=this.p(X[i])-y[i];for(let j=0;j<X[i].length;j++)dw[j]+=e*X[i][j];db+=e}
+      const n=X.length;for(let j=0;j<this.w.length;j++)this.w[j]-=this.lr*dw[j]/n;this.b-=this.lr*db/n;
+    }
+  }
+}
+
+function slope(a){
+  const n=a.length;if(n<2)return 0;const xm=(n-1)/2,ym=a.reduce((a,b)=>a+b,0)/n;let num=0,den=0;
+  for(let i=0;i<n;i++){num+=(i-xm)*(a[i]-ym);den+=(i-xm)**2}return den?num/den:0
+}
+
+function extractF(e){return[...Object.values(e.current),slope(e.tr.slice(-3)),e.tenure]}
+
+let probs={};
+function buildProbs(){
+  emps.forEach(e=>{
+    const l={salary:[],bonus:[],promotion:[]};
+    e.quarters.forEach((q,i)=>{
+      const s=ws(q,W),ps=i>0?ws(e.quarters[i-1],W):s;
+      l.salary.push(s>=3.5&&s>ps?1:0);l.bonus.push(s>=3.8&&q.goalAchievement>=4?1:0);l.promotion.push(s>=4.2&&q.problemSolving>=4&&q.integrity>=4?1:0);
+    });
+    const X=e.quarters.map((q,i)=>[...Object.values(q),slope(e.quarters.slice(0,i+1).map(qq=>ws(qq,W))),e.tenure]);
+    const models={};
+    for(const k of['salary','bonus','promotion']){const m=new LR(X[0].length);m.train(X,l[k]);models[k]=m}
+    const lf=X[X.length-1];
+    probs[e.name]={salary:models.salary.p(lf)*100,bonus:models.bonus.p(lf)*100,promotion:models.promotion.p(lf)*100,features:[...Object.keys(W),'trendSlope','tenure'],coeffs:{salary:[...models.salary.w,models.salary.b],bonus:[...models.bonus.w,models.bonus.b],promotion:[...models.promotion.w,models.promotion.b]}};
+  });
+}
+
+// ===== STATE =====
+let S={role:'HR',emp:emps[0],nav:'overview',dark:false,weights:{...W},filter:'All',settings:false};
+function mL(k){const m={goalAchievement:'Goal Achievement',productivity:'Productivity',qualityOfWork:'Quality of Work',reliability:'Reliability',problemSolving:'Problem Solving',integrity:'Integrity',peerFeedback:'Peer Feedback',communication:'Communication',trendSlope:'Trend Slope',tenure:'Tenure'};return m[k]||k}
+
+// ===== RENDER =====
+let rc=null,tc=null;
+
+function r(){
+  const e=S.emp;if(!e)return;
+  const app=document.getElementById('app'),hr=S.role==='HR',mg=S.role==='Manager',em=S.role==='Employee',dk=S.dark;
+  const navs=hr?[{id:'overview',lb:'Overview'},{id:'eligibility',lb:'Eligibility'},{id:'predictive',lb:'Predictive'},{id:'calibration',lb:'Calibration'}]
+    :mg?[{id:'overview',lb:'Overview'},{id:'eligibility',lb:'Eligibility'},{id:'predictive',lb:'Predictive'},{id:'reports',lb:'Reports'}]
+    :[{id:'overview',lb:'Overview'},{id:'eligibility',lb:'Badges'},{id:'predictive',lb:'Insights'}];
+  const ico={'overview':'📊','eligibility':'🏅','predictive':'🔮','calibration':'📋','reports':'👥'};
+
+  let h='<div class="'+(dk?'dark':'')+'" style="min-height:100vh">';
+  h+='<header class="header"><div class="header-left"><div class="logo-mark">e</div><div class="logo-text">empeo <span>Insights</span></div></div>';
+  h+='<div class="header-center">';
+  for(const r of['HR','Manager','Employee'])h+='<button class="role-btn'+(r===S.role?' active':'')+'" onclick="setRole(''+r+'')">'+r+'</button>';
+  h+='</div><div class="header-right"><button class="theme-toggle" onclick="togT()">'+(dk?'☀️':'🌙')+'</button></div></header>';
+  if(!em){h+='<nav class="sidebar">';for(const n of navs)h+='<a class="nav-item'+(n.id===S.nav?' active':'')+'" onclick="selNav(''+n.id+'')"><span class="icon">'+(ico[n.id]||'📊')+'</span> '+n.lb+'</a>';h+='</nav>';}
+  h+='<div class="main'+(em?' role-employee':'')+'">';
+  if(!em){h+='<div class="employee-selector" style="margin-bottom:16px"><label style="font-size:13px;color:var(--text-muted);font-weight:500">Employee</label>';
+  h+='<select onchange="setEmp(this.value)">';for(const emp of emps)h+='<option value="'+emp.name+'"'+(emp.name===e.name?' selected':'')+'>'+emp.name+' — '+emp.role+'</option>';h+='</select>';
+  if(hr)h+='<button class="role-btn" onclick="togS()" style="margin-left:auto">⚙️ Settings</button>';h+='</div>';}
+  if(hr&&S.settings){
+    h+='<div class="settings-panel"><div style="font-weight:600;margin-bottom:8px;font-size:14px">Weight & Threshold Settings</div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:500">Metric Weights</div>';
+    for(const[k,v]of Object.entries(S.weights)){
+      const lab=k.replace(/([A-Z])/g,' $1').replace(/^./,s=>s.toUpperCase());
+      h+='<div class="settings-row"><label>'+lab+'</label><input type="range" min="0.5" max="2" step="0.1" value="'+v+'" onchange="setW(''+k+'',+this.value)"><span class="val">'+v+'</span></div>';
+    }
+    h+='</div><div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:500">Badge Thresholds</div>';
+    h+='<div class="settings-row"><label>Promotion ≥</label><input type="number" step="0.1" value="4.2" style="width:60px" onchange="setThr(0,+this.value)"></div>';
+    h+='<div class="settings-row"><label>Bonus ≥</label><input type="number" step="0.1" value="3.8" style="width:60px" onchange="setThr(1,+this.value)"></div>';
+    h+='<div class="settings-row"><label>Improve &lt;</label><input type="number" step="0.1" value="2.8" style="width:60px" onchange="setThr(2,+this.value)"></div>';
+    h+='</div></div></div>';
+  }
+
+  // Calibration
+  if(hr&&S.nav==='calibration'){
+    h+='<h2 style="font-size:20px;font-weight:600;margin-bottom:8px">Calibration Overview</h2><p style="color:var(--text-muted);margin-bottom:16px">Department rating distribution</p>';
+    h+='<div class="dept-selector"><button class="dept-chip'+(S.filter==='All'?' active':'')+'" onclick="setF('All')">All</button>';
+    for(const d of DEPTS)h+='<button class="dept-chip'+(S.filter===d?' active':'')+'" onclick="setF(''+d+'')">'+d+'</button>';h+='</div>';
+    const fl=S.filter==='All'?emps:emps.filter(em=>em.dept===S.filter);
+    const dist=[1,2,3,4,5].map(b=>fl.filter(em=>Math.floor(em.os)===b).length);
+    const mx=Math.max(...dist,1);
+    h+='<div class="card"><div class="card-header"><div class="card-title">Rating Distribution</div></div><div class="rating-dist">';
+    for(let i=0;i<5;i++)h+='<div class="bar" style="height:'+((dist[i]/mx*56+4))+'px" title="'+(i+1)+' stars: '+dist[i]+' employees"><span>'+(i+1)+'</span></div>';h+='</div></div>';
+    h+='<div class="card"><div class="card-header"><div class="card-title">All Employees</div></div><div style="overflow-x:auto">';
+    h+='<table class="calibration-table"><thead><tr><th>Name</th><th>Dept</th><th>Score</th><th>Badges</th><th>Salary</th><th>Bonus</th><th>Promo</th><th></th></tr></thead><tbody>';
+    fl.sort((a,b)=>b.os-a.os).forEach(em=>{
+      const p=probs[em.name]||{salary:0,bonus:0,promotion:0};
+      h+='<tr><td class="clickable" onclick="setEmp(''+em.name+'');selNav('overview')">'+em.name+'</td><td>'+em.dept+'</td><td>'+em.os+'</td><td>';
+      for(const b of em.badges)h+='<span class="badge badge-'+b.color+'" style="margin-right:4px;margin-bottom:4px">'+b.label+'</span>';
+      h+='</td><td>'+p.salary.toFixed(1)+'%</td><td>'+p.bonus.toFixed(1)+'%</td><td>'+p.promotion.toFixed(1)+'%</td>';
+      h+='<td><button class="role-btn" onclick="setEmp(''+em.name+'');selNav('overview')">View</button></td></tr>';
+    });
+    h+='</tbody></table></div></div>';
+  }
+  // Reports
+  else if(mg&&S.nav==='reports'){
+    const rps=emps.filter(em=>em.manager===e.manager&&em.name!==e.name);
+    h+='<h2 style="font-size:20px;font-weight:600;margin-bottom:16px">Direct Reports ('+rps.length+')</h2><div class="direct-reports">';
+    for(const em of rps){
+      const p=probs[em.name]||{promotion:0};
+      h+='<div class="report-card" onclick="setEmp(''+em.name+'');selNav('overview')"><h4>'+em.name+'</h4>';
+      h+='<div class="muted">'+em.role+' · '+em.dept+'</div><div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">';
+      for(const b of em.badges)h+='<span class="badge badge-'+b.color+'" style="font-size:11px">'+b.label+'</span>';
+      h+='</div><div style="margin-top:6px;display:flex;gap:12px;font-size:13px">Score: <strong>'+em.os+'</strong> Promo: '+p.promotion.toFixed(0)+'%</div></div>';
+    }
+    h+='</div>';
+  }
+  // Overview
+  else if(S.nav==='overview'){
+    h+='<div class="kpi-grid">';
+    h+='<div class="kpi-card"><div class="label">Overall Score</div><div class="score-big">'+e.os+'</div><div class="sub">Cycle Q6</div></div>';
+    h+='<div class="kpi-card"><div class="label">Department</div><div class="value" style="font-size:22px">'+e.dept+'</div><div class="sub">'+e.role+'</div></div>';
+    h+='<div class="kpi-card"><div class="label">Tenure</div><div class="value" style="font-size:22px">'+e.tenure+' yrs</div><div class="sub">'+e.manager+'</div></div>';
+    h+='<div class="kpi-card"><div class="label">Status</div><div><div class="badge-group">';
+    for(const b of e.badges)h+='<span class="badge badge-'+b.color+' tooltip-trigger">'+b.label+'<div class="tooltip-box">'+b.why+'</div></span>';
+    h+='</div></div></div></div>';
+    h+='<div class="card"><div class="card-header"><div class="card-title">8 Metrics — Current Quarter</div></div><div class="chart-container"><canvas id="radarChart"></canvas></div></div>';
+    h+='<div class="card"><div class="card-header"><div class="card-title">Historical Trend</div><select onchange="cMV(this.value)" style="font-size:12px">';
+    h+='<option value="overall">Overall Score</option>';
+    for(const k of Object.keys(W))h+='<option value="'+k+'">'+mL(k)+'</option>';h+='</select></div><div class="chart-container"><canvas id="trendChart"></canvas></div></div>';
+    const sorted=Object.entries(e.current).sort((a,b)=>b[1]-a[1]),str=sorted.slice(0,3),imp=sorted.slice(-3).reverse();
+    h+='<div class="card"><div class="card-header"><div class="card-title">Strengths & Improvement Areas</div></div>';
+    h+='<div style="margin-bottom:8px"><span style="font-size:12px;color:var(--text-muted);font-weight:500">Strengths</span></div><div class="strength-list">';
+    for(const[k,v]of str)h+='<div class="strength-item good"><span>⭐</span> '+mL(k)+': <strong>'+v+'</strong></div>';
+    h+='</div><div style="margin:12px 0 8px"><span style="font-size:12px;color:var(--text-muted);font-weight:500">Improvement Areas</span></div><div class="strength-list">';
+    for(const[k,v]of imp)h+='<div class="strength-item needs"><span>⬆️</span> '+mL(k)+': <strong>'+v+'</strong></div>';
+    h+='</div></div>';
+    if(em){
+      const srt=Object.entries(e.current).sort((a,b)=>a[1]-b[1]);
+      h+='<div class="card"><div class="card-header"><div class="card-title">Suggested Next Steps</div></div><ul class="next-steps">';
+      for(let i=0;i<2;i++)h+='<li>Focus on improving <strong>'+mL(srt[i][0])+'</strong> (score: '+srt[i][1]+'). Discuss development plan.</li>';
+      h+='<li>Leverage strengths in '+mL(srt.slice(-2)[0][0])+' and '+mL(srt.slice(-2)[1][0])+'.</li><li>Schedule a check-in to align goals.</li></ul></div>';
+    }
+  }
+  // Eligibility
+  if(S.nav==='eligibility'){
+    h+='<h2 style="font-size:18px;font-weight:600;margin-bottom:4px">Eligibility & Badges</h2><p style="color:var(--text-muted);margin-bottom:16px">'+(em?'Your ':'Employee ')+'eligibility</p>';
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">';
+    const types=[
+      {lb:'Promotion Watchlist',cl:'success',wy:'OS >=4.2 for 2+ Qs AND PS>=4 AND Int>=4. Current: OS='+e.os+', PS='+e.current.problemSolving+', Int='+e.current.integrity},
+      {lb:'Bonus Eligible',cl:'success',wy:'OS >=3.8 AND GA>=4. Current: OS='+e.os+', GA='+e.current.goalAchievement},
+      {lb:'Needs Improvement Plan',cl:'warning',wy:'OS<2.8 OR any metric <=2 for 2+ Qs'},
+      {lb:'Stable Performer',cl:'neutral',wy:'None of the above triggered'}
+    ];
+    for(const t of types){
+      const trig=e.badges.some(b=>b.label===t.lb);
+      h+='<div class="insight-card" style="border-left:3px solid '+(t.cl==='success'?'var(--success)':t.cl==='warning'?'var(--warning)':'var(--border)')+'">';
+      h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span class="badge badge-'+t.cl+'" style="'+(trig?'':'opacity:0.6')+'">'+t.lb+'</span>';
+      h+='<span style="font-size:11px;color:var(--text-faint)">'+(trig?'✓ Active':'— Not met')+'</span></div><div class="why-panel">'+t.wy+'</div></div>';
+    }
+    h+='</div>';
+  }
+  // Predictive
+  if(S.nav==='predictive'){
+    const p=probs[e.name]||{salary:0,bonus:0,promotion:0};
+    const outs=[{k:'salary',lb:'Salary Adjustment'},{k:'bonus',lb:'Bonus Award'},{k:'promotion',lb:'Promotion'}];
+    h+='<h2 style="font-size:18px;font-weight:600;margin-bottom:4px">Predictive Insights</h2><p style="color:var(--text-muted);margin-bottom:16px">'+(em?'Your ':'Employee ')+'predictions (decision-support)</p>';
+    for(const o of outs){
+      const prob=Math.round(p[o.k]||0);
+      const feat=probs[e.name]?.features||[], coeffs=probs[e.name]?.coeffs?.[o.k]||[], vals=Object.values(e.current).concat([slope(e.tr.slice(-3)),e.tenure]);
+      let contribs=feat.map((f,i)=>({n:mL(f),v:coeffs[i]*(vals[i]||0),abs:Math.abs(coeffs[i]*(vals[i]||0))})).sort((a,b)=>b.abs-a.abs).slice(0,3);
+      h+='<div class="insight-card" style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">';
+      h+='<h4 style="margin:0">'+o.l+'</h4><div style="display:flex;align-items:center;gap:10px;flex:1;max-width:300px">';
+      h+='<div class="prediction-bar" style="flex:1"><div class="prediction-fill"><div style="width:'+prob+'%;background:'+(prob>=70?'var(--success)':prob>=40?'var(--accent)':'var(--warning)')+'"></div></div></div>';
+      h+='<span class="prediction-pct">'+prob+'%</span></div></div><div style="margin-top:8px;font-size:12px;color:var(--text-muted)">';
+      h+=em?'Based on your performance data.':'Top factors: '+contribs.map(c=>c.n).join(', ');
+      h+='<ul class="feature-list">'+contribs.map(c=>'<li>'+c.n+': '+c.v.toFixed(2)+'</li>').join('')+'</ul></div></div>';
+    }
+    h+='<div class="disclaimer">⚠️ Decision-support estimate based on historical patterns. Not automatic.</div>';
+  }
+  h+='</div></div>';
+  app.innerHTML=h;
+
+  // Charts
+  setTimeout(()=>{
+    const rC=document.getElementById('radarChart');if(rC){if(rc)rc.destroy();
+      rc=new Chart(rC,{type:'radar',data:{labels:Object.keys(W).map(k=>mL(k)),datasets:[{label:'Current',data:Object.values(e.current),backgroundColor:'rgba(217,83,10,0.15)',borderColor:'#D9530A',borderWidth:2,pointBackgroundColor:'#D9530A',pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:dk?'#EDE6DF':'#241C15',font:{size:11}}}},scales:{r:{beginAtZero:true,max:5,grid:{color:'rgba(36,28,21,0.08)'},ticks:{color:dk?'#B0A395':'#6B5F54',backdropColor:'transparent',font:{size:10}}}}}})}
+    const tC=document.getElementById('trendChart');if(tC){if(tc)tc.destroy();const mv=tC.parentElement?.parentElement?.querySelector('select')?.value||'overall';
+    tc=new Chart(tC,{type:'line',data:{labels:['Q1','Q2','Q3','Q4','Q5','Q6'].slice(0,e.tr.length),datasets:[{label:mv==='overall'?'Overall Score':mL(mv),data:mv==='overall'?e.tr:e.quarters.map(q=>q[mv]),borderColor:'#D9530A',backgroundColor:'rgba(217,83,10,0.1)',fill:true,tension:0.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:dk?'#EDE6DF':'#241C15',font:{size:11}}}},scales:{y:{beginAtZero:true,max:5,grid:{color:'rgba(36,28,21,0.06)'},ticks:{color:dk?'#B0A395':'#6B5F54',font:{size:11}}},x:{ticks:{color:dk?'#B0A395':'#6B5F54',font:{size:11}}}}}})}
+  },50);
+}
+
+// ===== MUTATORS =====
+function setRole(v){S.role=v;S.nav='overview';S.settings=false;r()}
+function selNav(n){S.nav=n;r()}
+function togT(){S.dark=!S.dark;r()}
+function togS(){S.settings=!S.settings;r()}
+function setF(d){S.filter=d;r()}
+function setEmp(n){const e=emps.find(em=>em.name===n);if(e)S.emp=e;r()}
+function cMV(v){r()}
+function setW(k,v){S.weights[k]=v;emps.forEach(e=>{e.current=e.quarters[5];e.os=ws(e.current,S.weights);e.tr=e.quarters.map(q=>ws(q,S.weights));computeBadges(e)});buildProbs();r()}
+function setThr(i,v){const thrs=[4.2,3.8,2.8];thrs[i]=v;r()}
+
+// ===== INIT =====
+computeAll();
+buildProbs();
+r();
+</script>
+</body>
+</html>
